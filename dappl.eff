@@ -1,0 +1,75 @@
+(* dappl in 25 lines of Eff *)
+
+effect Flip : float -> bool
+effect Reward : float -> unit
+effect Observe : bool -> unit
+
+let flip p      = perform (Flip p) ;;
+let rew k       = perform (Reward k) ;;
+let observe b   = perform (Observe b) ;;   
+
+let dv x y = if y = 0. then 0. else x /. y ;;
+let dappl = handler 
+| v                     ->  if v then (1., 0., 0.) else (0., 1., 0.)
+| effect (Flip p) k     ->  let (at, bt, ct)    = k true    in
+                            let (af, bf, cf)    = k false   in
+                            let q               = (1. -. p) in
+                            ((p *. at) +. (q *. af),
+                            (p *. bt) +. (q *. bf),
+                            (p *. ct) +. (q *. cf) )
+| effect (Reward n) k   ->  let (a, b, c)       = k ()      in
+                            let norm            = a +. b    in 
+                             *)
+                            (a , b, (n *. a) +. c)
+| effect (Observe b) k  -> if b then k () else (0., 0., 0.)
+| finally (a, b, c)     -> dv c (a +. b)
+;;
+
+(* Here's an example dappl program. *)
+
+(* should equal 0 *)
+let test1 = 
+    with dappl handle
+        rew 2. ;
+        let x =  observe false ; flip 0.5 in
+        if x 
+            then (rew 1. ; true)
+            else (rew 0. ; true)
+;;
+
+(* should equal 3 *)
+let test2 = 
+    with dappl handle
+        rew 2. ;
+        let x = flip 0.5 in
+        let y = observe x ; flip 0.5 in
+        if x 
+            then (if y then (rew 2. ; true) else (rew 0. ; true))
+            else (rew 0. ; true)
+;;
+
+(* should equal 2 2/3 *)
+let test3 = 
+    with dappl handle
+        rew 2. ;
+        let x = flip 0.5 in
+        let y = flip 0.5 in
+        observe (x || y) ;
+        if x 
+            then (rew 1. ; true)
+            else (rew 0. ; true)
+;;
+
+(* should equal 1/3 *)
+let test4 = 
+    with dappl handle
+        let x = flip 0.5 in
+        let y = flip 0.5 in
+        let z = x && y   in
+        observe (x || y) ;
+        if x 
+            then (if z then (rew 1. ;  true) else (rew 0. ; true))
+            else (rew 0. ; true)
+;;
+
+
