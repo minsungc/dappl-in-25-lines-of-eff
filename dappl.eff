@@ -19,7 +19,6 @@ let dappl = handler
                             (p *. ct) +. (q *. cf) )
 | effect (Reward n) k   ->  let (a, b, c)       = k ()      in
                             let norm            = a +. b    in 
-                             *)
                             (a , b, (n *. a) +. c)
 | effect (Observe b) k  -> if b then k () else (0., 0., 0.)
 | finally (a, b, c)     -> dv c (a +. b)
@@ -72,4 +71,10 @@ let test4 =
             else (rew 0. ; true)
 ;;
 
+(* should equal 1 *)
+let test5 = 
+    with dappl handle
+        let x = flip 0.5 in
+        let y = rew 1. ; observe x ; x in 
+        y
 
